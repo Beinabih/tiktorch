@@ -1,5 +1,5 @@
 import torch
-from tiktorch.utils import DynamicShape, assert_, to_list
+from utils import DynamicShape, assert_, to_list
 from itertools import count
 import logging
 

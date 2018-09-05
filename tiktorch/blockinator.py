@@ -1,7 +1,8 @@
 import torch
 import numpy as np
 import torch.nn.functional as thf
-from tiktorch.utils import DynamicShape
+# from tiktorch.utils import DynamicShape
+from utils import DynamicShape
 from contextlib import contextmanager
 
 
@@ -158,10 +159,11 @@ class Blockinator(object):
                                for _halo, _block_shape in zip(halo, self.block_shape)]
             spatial_padding = [(_num_halo_blocks * _block_shape,) * 2
                                for _num_halo_blocks, _block_shape in zip(num_halo_blocks,
-                                                                         self.block_shape)]
+                                                                         self.block_shape)]              
             sliceys = [slicey.from_(_sl, _padding, _shape)
                        for _sl, _padding, _shape in zip(full_slice, spatial_padding,
                                                         self.spatial_shape)]
+                       
             sliced = self.space_cake(*sliceys)
         else:
             sliced = self.space_cake(*full_slice)
@@ -213,4 +215,5 @@ def _test_blocky_halo():
 
 
 if __name__ == '__main__':
+    # _test_blocky_basic()
     _test_blocky_halo()
