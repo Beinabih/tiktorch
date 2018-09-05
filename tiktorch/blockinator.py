@@ -1,6 +1,7 @@
 import torch
 import numpy as np
 import torch.nn.functional as thf
+from torch.nn import ReflectionPad2d
 # from tiktorch.utils import DynamicShape
 from utils import DynamicShape
 from contextlib import contextmanager
@@ -103,7 +104,10 @@ class Blockinator(object):
         unpadded_volume = self.data[tuple(slice(0, None) for _ in range(self.num_channel_axes)) +
                                     tuple(sl.slice for sl in slices)]
         padding = [None] * self.num_channel_axes + [sl.padding for sl in slices]
-        padded_volume = self.pad_fn(unpadded_volume, padding)
+        print(padding)
+        # padded_volume = self.pad_fn(unpadded_volume, padding)
+        padded_volume = th_pad(unpadded_volume, padding)
+
         return padded_volume
 
     def fetch(self, item):
@@ -185,15 +189,25 @@ class Blockinator(object):
 
 def np_pad(x, padding):
     # TODO
+
     pass
     # return np.pad(x, padding, mode='reflect')
 
 
 def th_pad(x, padding):
-    torch_padding = []
-    for _dim_pad in padding:
-        pass
-    # TODO
+    """
+    reflection padding on borders for torch tensors 
+    """
+    #merge tuples in list
+    padding = [i for sub_list in padding for i in sub_list]
+    #torch needs 4d for padding, (N, C, H, W)
+    for _ in range(2):
+        x = torch.unsqueeze(x,0)
+    m = ReflectionPad2d(padding)
+    padded_volume = m(x)
+    for _ in range(2):
+        padded_volume = torch.squeeze(padded_volume, 0)
+    return padded_volume
 
 
 def _test_blocky_basic():
@@ -210,7 +224,7 @@ def _test_blocky_halo():
     block = Blockinator(torch.rand(256, 256), dynamic_shape)
     processor = Namespace(halo=[4, 4])
     with block.attach(processor):
-        out = block[1:3, 2:4]
+        out = block[6:8, 0:2]
     print(out.shape)
 
 
