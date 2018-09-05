@@ -104,9 +104,11 @@ class Blockinator(object):
         unpadded_volume = self.data[tuple(slice(0, None) for _ in range(self.num_channel_axes)) +
                                     tuple(sl.slice for sl in slices)]
         padding = [None] * self.num_channel_axes + [sl.padding for sl in slices]
-        print(padding)
         # padded_volume = self.pad_fn(unpadded_volume, padding)
-        padded_volume = th_pad(unpadded_volume, padding)
+        if type(unpadded_volume) is np.ndarray:
+            padded_volume = np_pad(unpadded_volume, padding)
+        else:
+            padded_volume = th_pad(unpadded_volume, padding)
 
         return padded_volume
 
@@ -188,10 +190,10 @@ class Blockinator(object):
 
 
 def np_pad(x, padding):
-    # TODO
-
-    pass
-    # return np.pad(x, padding, mode='reflect')
+    """
+    reflection padding on borders for numpy arrays
+    """
+    return np.pad(x, padding, mode='reflect')
 
 
 def th_pad(x, padding):
@@ -222,6 +224,7 @@ def _test_blocky_halo():
     from argparse import Namespace
     dynamic_shape = DynamicShape('(32 * (nH + 1), 32 * (nW + 1))')
     block = Blockinator(torch.rand(256, 256), dynamic_shape)
+    # block = Blockinator(np.random.rand(256,256), dynamic_shape)
     processor = Namespace(halo=[4, 4])
     with block.attach(processor):
         out = block[6:8, 0:2]
