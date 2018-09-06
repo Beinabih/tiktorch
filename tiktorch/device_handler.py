@@ -224,9 +224,10 @@ class ModelHandler(Processor):
             self.halo = halo
         return halo
 
-    def forward(self, input_tensor):
+    def forward(self, input_tensor, device):
+        out = self.model.to(device)(input_tensor)
 
-        pass
+        return out
 
 
 def test_dry_run_on_device():

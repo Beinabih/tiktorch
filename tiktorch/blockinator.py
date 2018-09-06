@@ -5,6 +5,7 @@ from torch.nn import ReflectionPad2d
 # from tiktorch.utils import DynamicShape
 from utils import DynamicShape
 from contextlib import contextmanager
+from device_handler import ModelHandler
 
 
 class slicey(object):
@@ -179,7 +180,26 @@ class Blockinator(object):
         return self.fetch(item)
 
     def process(self):
-        # TODO Scheduling
+        if self._processor.device_names[0][:3] == 'cpu':
+            #no dry run needed
+            return self.data
+
+        elif self._processor.device_names[0][:3] == 'cuda':
+            max_blocks = []
+            #get the max shape for every gpu
+            for i in range(self._processor.num_devices):
+                self._processor._dry_run_on_device(i)
+                max_blocks.append(self._processor._device_specs.get(i).shape)
+
+            if max_blocks[0,0] >= self.data.shape[0] and max_blocks[0,1] >= self.data.shape[1]:
+                #everything fits into one gpu
+                return self.data
+            else:
+                print("not_Implemented")
+
+        else:
+            print("wrong device name")
+
         pass
 
     @contextmanager
@@ -230,7 +250,44 @@ def _test_blocky_halo():
         out = block[6:8, 0:2]
     print(out.shape)
 
+def _test_blocky_processor():
+
+    import torch.nn as nn
+    model = nn.Sequential(nn.Conv2d(3, 10, 3),
+                          nn.Conv2d(10, 10, 3),
+                          nn.Conv2d(10, 10, 3),
+                          nn.Conv2d(10, 3, 3))
+    handler = ModelHandler(model=model,
+                           device_names='cpu:0',
+                           in_channels=3, out_channels=3,
+                           dynamic_shape_code='(32 * (nH + 1), 32 * (nW + 1))')
+
+    dynamic_shape = DynamicShape('(32 * (nH + 1), 32 * (nW + 1))')
+
+    input_tensor = torch.rand(1,3,256,256)
+
+    processor = handler
+
+    for x in range(input_tensor.shape[1]):
+        block = Blockinator(input_tensor[0,x], dynamic_shape)
+
+        with block.attach(processor):
+            out = block.process()
+
+            if x==0 :
+                new_input = torch.unsqueeze(out,0)
+            else:
+                new_input = torch.cat((new_input,torch.unsqueeze(out,0)),0)
+
+    print (new_input.shape)
+
+    output = handler.forward(input_tensor, handler.device_names[0])
+
+
+
+
 
 if __name__ == '__main__':
     # _test_blocky_basic()
-    _test_blocky_halo()
+    # _test_blocky_halo()
+    _test_blocky_processor()
