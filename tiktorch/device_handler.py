@@ -47,6 +47,7 @@ class ModelHandler(Processor):
         # Publics
         self.device_names = to_list(device_names)
         self.dynamic_shape = DynamicShape(dynamic_shape_code)
+        self.dry_run_on_init()
         # Init superclass
         super(ModelHandler, self).__init__(num_parallel_jobs=len(self.devices))
 
@@ -200,6 +201,18 @@ class ModelHandler(Processor):
             self._device_specs[device_id] = self._dry_run_on_device(device_id)
         return self
 
+    def dry_run_on_init(self):
+        """
+        the dry run will be triggered on initialization
+        """
+        if self.device_names[0][:3] == 'cpu':
+            #no dry run needed
+            self._device_specs[0] = None
+
+        elif self.device_names[0][:3] == 'cuda':
+            self.dry_run()
+
+
     @property
     def num_parallel_jobs(self):
         return self.num_devices
@@ -224,10 +237,12 @@ class ModelHandler(Processor):
             self.halo = halo
         return halo
 
-    def forward(self, input_tensor, device):
-        out = self.model.to(device)(input_tensor)
+    def forward(self, input_tensor):
+        if self._device_specs[0] == None:
+            return self.model.to(self.devices[0])(input_tensor)
+        else:
+            print("not implemented")
 
-        return out
 
 
 def test_dry_run_on_device():

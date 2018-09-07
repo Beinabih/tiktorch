@@ -7,7 +7,10 @@ import torch
 import yaml
 
 from tiktorch.tio import TikIn, TikOut
-from . import utils
+# from . import utils
+import utils
+from device_handler import ModelHandler
+
 
 logger = logging.getLogger('TikTorch')
 
@@ -96,6 +99,7 @@ class TikTorch(object):
 
     def batch_inputs(self, inputs):
         input_shapes = self.get('input_shape', assert_exist=True)
+        input_shapes = (1,20,20)
         assert isinstance(input_shapes, (list, tuple))
         # input_shapes can either be a list of shapes or a shape. Make sure it's the latter
         if isinstance(input_shapes[0], int):
@@ -135,12 +139,39 @@ class TikTorch(object):
         # Batch inputs
         batches = self.batch_inputs(inputs)
         # Send batch to the right device
-        batches = [batch.to(self.devices) for batch in batches]
-        # Make sure model is in right device and feedforward
-        output_batches = self.ensure_model_on_device()(*batches)
-        if not isinstance(output_batches, (list, tuple)):
-            output_batches = [output_batches]
-        else:
-            output_batches = list(output_batches)
-        outputs = [TikOut(batch) for batch in output_batches]
-        return outputs
+        # model = self.load_model() 
+
+        import torch.nn as nn
+        model = nn.Sequential(nn.Conv2d(1, 256, 3),
+                              nn.Conv2d(256, 1, 3))
+
+        handler = ModelHandler(model=model.double(),
+                               device_names=self.get('devices', None),
+                               in_channels=1, out_channels=1, #TO DO
+                               dynamic_shape_code='(32 * (nH + 1), 32 * (nW + 1))')
+
+
+        output_batches = [handler.forward(batch) for batch in batches]
+        # outputs = [TikOut(batch) for batch in output_batches]
+        print(outputs)
+
+        # batches = [batch.to(self.devices) for batch in batches]
+        # # Make sure model is in right device and feedforward
+        # output_batches = self.ensure_model_on_device()(*batches)
+        # if not isinstance(output_batches, (list, tuple)):
+        #     output_batches = [output_batches]
+        # else:
+        #     output_batches = list(output_batches)
+        # outputs = [TikOut(batch) for batch in output_batches]
+        # return outputs
+
+def test_forward():
+    input_tensor = TikIn([np.random.rand(1,128,128)])
+    print(input_tensor.shape) 
+
+    tik = TikTorch("/Users/jmassa/Documents/Hiwi/ilastik/nnWizard/build")
+    output = tik.forward(input_tensor)
+
+
+if __name__ == '__main__':
+    test_forward()
