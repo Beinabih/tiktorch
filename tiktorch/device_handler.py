@@ -239,9 +239,28 @@ class ModelHandler(Processor):
 
     def forward(self, input_tensor):
         if self._device_specs[0] == None:
+            #CPU case 
             return self.model.to(self.devices[0])(input_tensor)
         else:
-            print("not implemented")
+            #GPU case
+            if self._device_specs.get(0).shape > input_tensor[0,x]:
+                #everything fits on one gpu
+                return self.model.to(self.devices[0])(input_tensor)
+
+            else:
+                #process    
+                processor = self
+
+                for x in range(input_tensor.shape[1]):
+                    block = Blockinator(input_tensor[0,x], dynamic_shape)
+
+                    with block.attach(processor):
+                        out = block.process()
+
+                    if x==0 :
+                        new_input = torch.unsqueeze(out,0)
+                    else:
+                        new_input = torch.cat((new_input,torch.unsqueeze(out,0)),0)
 
 
 

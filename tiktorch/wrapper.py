@@ -7,6 +7,7 @@ import torch
 import yaml
 
 from tiktorch.tio import TikIn, TikOut
+# from tio import TikIn, TikOut
 # from . import utils
 import utils
 from device_handler import ModelHandler
@@ -166,7 +167,7 @@ class TikTorch(object):
         # return outputs
 
 def test_forward():
-    input_tensor = TikIn([np.random.rand(1,128,128)])
+    input_tensor = TikIn([np.random.rand(1, 128, 128)])
     print(input_tensor.shape) 
 
     tik = TikTorch("/Users/jmassa/Documents/Hiwi/ilastik/nnWizard/build")

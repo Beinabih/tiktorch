@@ -180,27 +180,8 @@ class Blockinator(object):
         return self.fetch(item)
 
     def process(self):
-        if self._processor.device_names[0][:3] == 'cpu':
-            #no dry run needed
-            return self.data
-
-        elif self._processor.device_names[0][:3] == 'cuda':
-            max_blocks = []
-            #get the max shape for every gpu
-            for i in range(self._processor.num_devices):
-                self._processor._dry_run_on_device(i)
-                max_blocks.append(self._processor._device_specs.get(i).shape)
-
-            if max_blocks[0,0] >= self.data.shape[0] and max_blocks[0,1] >= self.data.shape[1]:
-                #everything fits into one gpu
-                return self.data
-            else:
-                print("not_Implemented")
-
-        else:
-            print("wrong device name")
-
         pass
+
 
     @contextmanager
     def attach(self, processor):
