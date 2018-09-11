@@ -5,7 +5,7 @@ from torch.nn import ReflectionPad2d
 # from tiktorch.utils import DynamicShape
 from utils import DynamicShape
 from contextlib import contextmanager
-from device_handler import ModelHandler
+# from device_handler import ModelHandler
 
 
 class slicey(object):
@@ -182,7 +182,6 @@ class Blockinator(object):
     def process(self):
         pass
 
-
     @contextmanager
     def attach(self, processor):
         self._processor = processor
@@ -232,7 +231,6 @@ def _test_blocky_halo():
     print(out.shape)
 
 def _test_blocky_processor():
-
     import torch.nn as nn
     model = nn.Sequential(nn.Conv2d(3, 10, 3),
                           nn.Conv2d(10, 10, 3),
@@ -244,11 +242,8 @@ def _test_blocky_processor():
                            dynamic_shape_code='(32 * (nH + 1), 32 * (nW + 1))')
 
     dynamic_shape = DynamicShape('(32 * (nH + 1), 32 * (nW + 1))')
-
     input_tensor = torch.rand(1,3,256,256)
-
     processor = handler
-
     for x in range(input_tensor.shape[1]):
         block = Blockinator(input_tensor[0,x], dynamic_shape)
 
@@ -259,11 +254,16 @@ def _test_blocky_processor():
                 new_input = torch.unsqueeze(out,0)
             else:
                 new_input = torch.cat((new_input,torch.unsqueeze(out,0)),0)
-
     print (new_input.shape)
-
     output = handler.forward(input_tensor, handler.device_names[0])
 
+def test_odd():
+    dynamic_shape = DynamicShape('(32 * (nH + 1), 32 * (nW + 1))')
+    block = Blockinator(torch.rand(233, 233), dynamic_shape)
+    print(block.num_blocks)
+    assert block.num_blocks == (8, 8)
+    assert block.get_slice(0, 0) == (slice(0, 32, None), slice(0, 32, None))
+    assert list(block[:-1].shape) == [224, 256]
 
 
 
@@ -271,4 +271,5 @@ def _test_blocky_processor():
 if __name__ == '__main__':
     # _test_blocky_basic()
     # _test_blocky_halo()
-    _test_blocky_processor()
+    # _test_blocky_processor()
+    test_odd()

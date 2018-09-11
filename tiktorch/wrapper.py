@@ -140,21 +140,27 @@ class TikTorch(object):
         # Batch inputs
         batches = self.batch_inputs(inputs)
         # Send batch to the right device
-        # model = self.load_model() 
-
-        import torch.nn as nn
-        model = nn.Sequential(nn.Conv2d(1, 256, 3),
-                              nn.Conv2d(256, 1, 3))
-
-        handler = ModelHandler(model=model.double(),
+        handler = ModelHandler(model=self.model,
                                device_names=self.get('devices', None),
                                in_channels=1, out_channels=1, #TO DO
                                dynamic_shape_code='(32 * (nH + 1), 32 * (nW + 1))')
 
+        # import torch.nn as nn
+        # model = nn.Sequential(nn.Conv2d(1, 10, 3),
+        #               nn.Conv2d(10, 10, 3),
+        #               nn.MaxPool2d(3, stride=4),
+        #               nn.Conv2d(10, 10, 3),
+        #               nn.MaxPool2d(4, stride=4),
+        #               nn.Conv2d(10, 1, 3))
+        
+        # handler = ModelHandler(model=model.double(),
+        #                device_names=self.get('devices', None),
+        #                in_channels=1, out_channels=1, #TO DO
+        #                dynamic_shape_code='(32 * (nH + 1), 32 * (nW + 1))')
 
         output_batches = [handler.forward(batch) for batch in batches]
         # outputs = [TikOut(batch) for batch in output_batches]
-        print(outputs)
+        print(output_batches)
 
         # batches = [batch.to(self.devices) for batch in batches]
         # # Make sure model is in right device and feedforward
@@ -164,10 +170,10 @@ class TikTorch(object):
         # else:
         #     output_batches = list(output_batches)
         # outputs = [TikOut(batch) for batch in output_batches]
-        # return outputs
+        return output_batches
 
 def test_forward():
-    input_tensor = TikIn([np.random.rand(1, 128, 128)])
+    input_tensor = TikIn([np.random.rand(1, 127, 128)])
     print(input_tensor.shape) 
 
     tik = TikTorch("/Users/jmassa/Documents/Hiwi/ilastik/nnWizard/build")

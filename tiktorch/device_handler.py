@@ -1,5 +1,7 @@
 import torch
+import numpy as np
 from utils import DynamicShape, assert_, to_list
+from blockinator import Blockinator
 from itertools import count
 import logging
 
@@ -237,7 +239,36 @@ class ModelHandler(Processor):
             self.halo = halo
         return halo
 
+    def check_shape(self, input_tensor, processor):
+        """
+        shape must be a multiple of 8 
+        """
+
+        for x in range(input_tensor.shape[1]):
+            block = Blockinator(input_tensor[0,x], self.dynamic_shape)
+
+            print(block.num_blocks)
+            maxblock = np.max(block.num_blocks)
+
+            with block.attach(processor):
+                out = block[0:maxblock, 0:maxblock]
+
+                if x==0 :
+                    new_input = torch.unsqueeze(out,0)
+                else:
+                    new_input = torch.cat((new_input,torch.unsqueeze(out,0)),0)
+
+        input_tensor = torch.unsqueeze(new_input,0)
+        print(input_tensor.shape)
+
+        return input_tensor
+
+
     def forward(self, input_tensor):
+        processor = self
+
+        input_tensor = self.check_shape(input_tensor, processor)
+
         if self._device_specs[0] == None:
             #CPU case 
             return self.model.to(self.devices[0])(input_tensor)
@@ -249,8 +280,6 @@ class ModelHandler(Processor):
 
             else:
                 #process    
-                processor = self
-
                 for x in range(input_tensor.shape[1]):
                     block = Blockinator(input_tensor[0,x], dynamic_shape)
 
