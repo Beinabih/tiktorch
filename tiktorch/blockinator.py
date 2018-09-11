@@ -105,7 +105,10 @@ class Blockinator(object):
         unpadded_volume = self.data[tuple(slice(0, None) for _ in range(self.num_channel_axes)) +
                                     tuple(sl.slice for sl in slices)]
         padding = [None] * self.num_channel_axes + [sl.padding for sl in slices]
-        # padded_volume = self.pad_fn(unpadded_volume, padding)
+        
+        #the order must be reversed because padding uses (paddingLeft, paddingRight, paddingTop, paddingBottom)
+        padding = reversed(padding)
+
         if type(unpadded_volume) is np.ndarray:
             padded_volume = np_pad(unpadded_volume, padding)
         else:
@@ -207,6 +210,7 @@ def th_pad(x, padding):
         x = torch.unsqueeze(x,0)
     m = ReflectionPad2d(padding)
     padded_volume = m(x)
+    print(padded_volume.shape)
     for _ in range(2):
         padded_volume = torch.squeeze(padded_volume, 0)
     return padded_volume

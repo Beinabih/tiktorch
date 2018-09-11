@@ -241,13 +241,13 @@ class ModelHandler(Processor):
 
     def check_shape(self, input_tensor, processor):
         """
-        shape must be a multiple of 8 
+        shape must be a multiple of the dynamic shape size therefore we pad it to max num_block
         """
 
+        #for every channel since blockinator uses only [H, W]
         for x in range(input_tensor.shape[1]):
             block = Blockinator(input_tensor[0,x], self.dynamic_shape)
-
-            print(block.num_blocks)
+            #get max block
             maxblock = np.max(block.num_blocks)
 
             with block.attach(processor):
@@ -257,9 +257,8 @@ class ModelHandler(Processor):
                     new_input = torch.unsqueeze(out,0)
                 else:
                     new_input = torch.cat((new_input,torch.unsqueeze(out,0)),0)
-
-        input_tensor = torch.unsqueeze(new_input,0)
-        print(input_tensor.shape)
+        #unsqueeze to get the 4D shape for forwarding
+        input_tensor = torch.unsqueeze(new_input, 0)
 
         return input_tensor
 
@@ -267,11 +266,12 @@ class ModelHandler(Processor):
     def forward(self, input_tensor):
         processor = self
 
+        #check the input shape 
         input_tensor = self.check_shape(input_tensor, processor)
 
         if self._device_specs[0] == None:
             #CPU case 
-            return self.model.to(self.devices[0])(input_tensor)
+            return self.model.double().to(self.devices[0])(input_tensor)
         else:
             #GPU case
             if self._device_specs.get(0).shape > input_tensor[0,x]:
