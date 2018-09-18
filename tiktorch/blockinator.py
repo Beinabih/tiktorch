@@ -2,8 +2,8 @@ import torch
 import numpy as np
 import torch.nn.functional as thf
 from torch.nn import ReflectionPad2d
-# from tiktorch.utils import DynamicShape
-from utils import DynamicShape
+from tiktorch.utils import DynamicShape
+# from utils import DynamicShape
 from contextlib import contextmanager
 # from device_handler import ModelHandler
 

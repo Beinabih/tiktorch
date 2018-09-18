@@ -1,7 +1,7 @@
 import torch
 import numpy as np
-from utils import DynamicShape, assert_, to_list
-from blockinator import Blockinator
+from tiktorch.utils import DynamicShape, assert_, to_list
+from .blockinator import Blockinator
 from itertools import count
 import logging
 
@@ -223,6 +223,7 @@ class ModelHandler(Processor):
         device = self.devices[device_id]
         # Evaluate model on the smallest possible image to keep it quick
         input_tensor = torch.zeros(1, self.in_channels, *self.dynamic_shape.base_shape).to(device)
+        input_tensor = input_tensor.float()
         model = self.model.to(device)
         output_tensor = model(input_tensor)
         # Assuming NCHW or NCDHW, the first two axes are not relevant for computing halo
@@ -245,20 +246,27 @@ class ModelHandler(Processor):
         """
 
         #for every channel since blockinator uses only [H, W]
-        for x in range(input_tensor.shape[1]):
-            block = Blockinator(input_tensor[0,x], self.dynamic_shape)
-            #get max block
-            maxblock = np.max(block.num_blocks)
+        for n in range(input_tensor.shape[0]):
+            for x in range(input_tensor.shape[1]):
+                block = Blockinator(input_tensor[0,x], self.dynamic_shape)
+                #get max block
+                maxblock = np.max(block.num_blocks)
+                print(block.num_blocks)
 
-            with block.attach(processor):
-                out = block[0:maxblock, 0:maxblock]
+                with block.attach(processor):
+                    out = block[0:(maxblock+1), 0:(maxblock+1)]
+                    print(out.shape,"out")
 
-                if x==0 :
-                    new_input = torch.unsqueeze(out,0)
-                else:
-                    new_input = torch.cat((new_input,torch.unsqueeze(out,0)),0)
-        #unsqueeze to get the 4D shape for forwarding
-        input_tensor = torch.unsqueeze(new_input, 0)
+                    if x==0 :
+                        new_input = torch.unsqueeze(out,0)
+                    else:
+                        new_input = torch.cat((new_input,torch.unsqueeze(out,0)),0)
+        
+            #unsqueeze to get the 4D shape for forwarding
+            if n==0 :  
+                input_tensor = torch.unsqueeze(new_input, 0)
+            else:
+                input_tensor = torch.cat((input_tensor,torch.unsqueeze(new_input,0)),0)
 
         return input_tensor
 
@@ -271,7 +279,8 @@ class ModelHandler(Processor):
 
         if self._device_specs[0] == None:
             #CPU case 
-            return self.model.double().to(self.devices[0])(input_tensor)
+            with torch.no_grad():
+                return self.model.to(self.devices[0])(input_tensor)
         else:
             #GPU case
             if self._device_specs.get(0).shape > input_tensor[0,x]:
