@@ -100,7 +100,7 @@ class TikTorch(object):
 
     def batch_inputs(self, inputs):
         input_shapes = self.get('input_shape', assert_exist=True)
-        input_shapes = (1,20,20) #HAAACKKK for testing 
+        input_shapes = (1,512,512) #HAAACKKK for testing 
         assert isinstance(input_shapes, (list, tuple))
         # input_shapes can either be a list of shapes or a shape. Make sure it's the latter
         if isinstance(input_shapes[0], int):

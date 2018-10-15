@@ -77,8 +77,9 @@ class BuildyMcBuildface(object):
         self.validate_path(spec.code_path, 'py').copy_to_build_directory(spec.code_path,
                                                                          'model.py')
         # ... and weights path
-        self.validate_path(spec.state_path, 'nn').copy_to_build_directory(spec.state_path,
-                                                                          'state.nn')
+        # self.validate_path(spec.state_path, 'nn').copy_to_build_directory(spec.state_path,
+        #                                                                   'state.nn')
+        self.copy_to_build_directory(spec.state_path, 'state.nn')
         # Build and dump configuration dict
         tiktorch_config = spec.__dict__
         tiktorch_config.update({'build_directory': self.build_directory})
@@ -138,6 +139,8 @@ class TikTorchSpec(object):
         return cls
 
     def validate(self):
+
+        print(self.input_shape)
 
         self.assert_(os.path.exists(self.code_path), f'Path not found: {self.code_path}', FileExistsError)
 

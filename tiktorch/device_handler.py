@@ -274,11 +274,15 @@ class ModelHandler(Processor):
     def forward(self, input_tensor):
         processor = self
 
-        #check the input shape 
-        input_tensor = self.check_shape(input_tensor, processor)
-
         if self._device_specs[0] == None:
             #CPU case 
+
+            #check the input shape
+            if input_tensor.shape[2]/32 != 0 or input_tensor.shape[3]/32 !=0:
+                input_tensor = self.check_shape(input_tensor, processor)
+            if input_tensor.shape[2] != input_tensor.shape[3]:
+                input_tensor = self.check_shape(input_tensor, processor)
+
             with torch.no_grad():
                 return self.model.to(self.devices[0])(input_tensor)
         else:
