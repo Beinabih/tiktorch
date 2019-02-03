@@ -275,6 +275,11 @@ class TikTorchClient(object):
                     'flag': train_flag}
             logger.info('Sending Dry_Run_Spec')
             self.meta_send(info)
+            logger.info("Waiting for Shape Information.")
+            shape = self.meta_recv()
+            assert shape['id'] == 'DRYRUN.SHAPE'
+        return shape['shape']
+
 
     def forward(self, inputs: list):
         logger = logging.getLogger('TikTorchClient.forward')

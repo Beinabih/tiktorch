@@ -144,7 +144,7 @@ class TikTorchServer(object):
             self.load_model()
         return self._handler
 
-    def dry_run(self, image_shape, train=False):
+    def dry_run(self):
         """
         Initiates dry run.
         Parameters
@@ -152,8 +152,23 @@ class TikTorchServer(object):
         image_shape: list or tuple
         shape of an image in the dataset (e.g `HW` for 2D or `DHW` for 3D)
         """
+        logger = logging.getLogger('TikTorchServer.Dry_run')
+        logger.info("Receiving BatchSpec...")
+        dryrun_spec = self.meta_recv()
+        assert dryrun_spec['id'] == 'DRYRUN.SPEC'
+        logger.info("Received BatchSpec.")
+        image_shape = dryrun_spec['shape']
+        train_flag = dryrun_spec['flag']
         assert self.handler is not None
-        return self.handler.binary_dry_run(list(image_shape), train_flag=train)
+        logger.info('Starting Dry_run')
+        shape = self.handler.binary_dry_run(list(image_shape), train_flag=train_flag)
+        logger.info('Finished Dry run')
+        shape_info = {'id': 'DRYRUN.SHAPE',
+                      'shape': shape}
+        logger.info('sending shape information')
+        self.meta_send(shape_info)
+
+
 
     def _set_handler(self, model):
         assert self.get('input_shape') is not None
@@ -317,6 +332,11 @@ class TikTorchServer(object):
                 self.meta_send({'id': 'DISPATCHING.MODEL_STATE_DICT_REQUEST'})
                 logger.info('Dispatch confirmed.')
                 self.request_model_state_dict()
+            elif request['id'] == 'DISPATCH.DRYRUN':
+                logger.info("Received requst to dispatch dry run")
+                self.meta_send({'id': 'DISPATCHING.DRYRUN'})
+                logger.info('Dispatch confirmed, execute dry run')
+                self.dry_run()
             else:
                 # Bad id
                 raise RuntimeError

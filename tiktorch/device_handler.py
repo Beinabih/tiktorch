@@ -129,7 +129,7 @@ class ModelHandler(Processor):
         """
         return [int(np.ceil(_halo / _block_shape))
                 for _halo, _block_shape in zip(self.halo, self.dynamic_shape.base_shape)]
-    
+
     @property
     def halo(self):
         if self._halo is None:
@@ -320,26 +320,30 @@ class ModelHandler(Processor):
         ----------
         image_shape: list or tuple
         """
-        image_shape = list(image_shape) # in case image_shape is a tuple
+        image_shape = list(image_shape)  # in case image_shape is a tuple
         assert len(image_shape) == len(self.dynamic_shape.base_shape)
-        
+
         if self.devices[0] == torch.device('cpu'):
             default_shape = [256, 256] if len(image_shape) == 2 else [96, 96, 96]
             image_shape = [default_shape[i] if image_shape[i] > default_shape[i] else image_shape[i]
                            for i in range(len(image_shape))]
 
         logger.debug(f'Dry run with upper bound: {image_shape}')
-            
+
         max_shape = []
         for device_id in range(self.num_devices):
             logger.debug(f'Dry running on device: {self.devices[device_id]}')
-            self._device_specs[device_id] = self._binary_dry_run_on_device(image_shape, device_id, train_flag=train_flag)
+            self._device_specs[device_id] = self._binary_dry_run_on_device(image_shape, device_id,
+                                                                           train_flag=train_flag)
             max_device_shape = self.dynamic_shape(*self._device_specs[device_id].num_blocks)
             if len(max_shape) == 0:
                 max_shape = max_device_shape
             elif max_shape < max_device_shape:
                 max_shape = max_device_shape
         logger.debug(f'Dry run finished. Max shape / upper bound: {max_shape} / {image_shape}')
+
+        torch.cuda.empty_cache()
+
         return max_shape
 
     def _binary_dry_run_on_device(self, image_shape, device_id, train_flag=False):
@@ -362,7 +366,7 @@ class ModelHandler(Processor):
             for i in range(ndim_image):
                 m = [int(np.floor((l[i] + r[i]) / 2)) for i in range(ndim_image)]
                 spatial_shape = self.dynamic_shape(*m)
-                
+
                 logger.debug(f"Dry run on ({self.devices[device_id]}) with shape = {spatial_shape}.")
                 print(f"Dry run on ({self.devices[device_id]}) with shape = {spatial_shape}.")
 
@@ -371,7 +375,7 @@ class ModelHandler(Processor):
                     break
                 else:
                     device_capacity = m
-                
+
                 success = self._try_running_on_blocksize(*m, device_id=device_id, train_flag=train_flag)
 
                 if not success:
@@ -394,7 +398,7 @@ class ModelHandler(Processor):
                 break
 
         return DeviceMemoryCapacity(device_capacity, self.dynamic_shape, device_id=device_id)
-           
+
     @property
     def num_parallel_jobs(self):
         return self.num_devices
@@ -403,7 +407,8 @@ class ModelHandler(Processor):
         device = self.devices[device_id]
         # Evaluate model on the smallest possible image to keep it quick
         input_tensor = torch.zeros(1, self.channels, *self.dynamic_shape.base_shape)
-        output_tensor = torch.zeros(1, self.channels, *self.dynamic_shape.base_shape) #self.model.to(device)(input_tensor.to(device))
+        output_tensor = torch.zeros(1, self.channels,
+                                    *self.dynamic_shape.base_shape)  # self.model.to(device)(input_tensor.to(device))
         # Assuming NCHW or NCDHW, the first two axes are not relevant for computing halo
         input_spatial_shape = input_tensor.shape[2:]
         output_spatial_shape = output_tensor.shape[2:]
@@ -433,7 +438,7 @@ class ModelHandler(Processor):
         roi_shape = []
         for size, halo, blocks in zip(base_shape, self.halo, self.halo_in_blocks):
             if halo > 0:
-                roi_shape.append(slice(size*blocks - halo, -(size*blocks - halo)))
+                roi_shape.append(slice(size * blocks - halo, -(size * blocks - halo)))
             else:
                 roi_shape.append(slice(None))
         return tensor[[slice(None)] * num_channel_axes + roi_shape]
